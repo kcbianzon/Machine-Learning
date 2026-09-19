@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as mobilenet from '@tensorflow-models/mobilenet'
-import * as poseDetection from '@tensorflow-models/pose-detection'
+import * as posenet from '@tensorflow-models/posenet'
 import * as tf from '@tensorflow/tfjs'
 import './App.css'
 
@@ -18,10 +18,10 @@ function App() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const classifierRef = useRef<mobilenet.MobileNet | null>(null)
-  const detectorRef = useRef<poseDetection.PoseDetector | null>(null)
+  const detectorRef = useRef<posenet.PoseNet | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const animationRef = useRef<number | null>(null)
-  const previousKeypointsRef = useRef<poseDetection.Keypoint[] | null>(null)
+  const previousKeypointsRef = useRef<posenet.Keypoint[] | null>(null)
   const previousActiveRef = useRef(false)
   const [cameraReady, setCameraReady] = useState(false)
   const [modelsReady, setModelsReady] = useState(false)
@@ -46,7 +46,7 @@ function App() {
         setCameraReady(true)
         const [classifier, detector] = await Promise.all([
           mobilenet.load({ version: 2, alpha: 1.0 }),
-          tf.ready().then(() => poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING })),
+          tf.ready().then(() => posenet.load({ architecture: 'MobileNetV1', outputStride: 16, inputResolution: { width: 640, height: 480 }, multiplier: 0.75 })),
         ])
         if (!active) return
         classifierRef.current = classifier
@@ -78,8 +78,7 @@ function App() {
       const detector = detectorRef.current
       const canvas = canvasRef.current
       if (!active || !video || !detector || !canvas || video.readyState < 2) return
-      const poses = await detector.estimatePoses(video)
-      const pose = poses[0]
+      const pose = await detector.estimateSinglePose(video, { flipHorizontal: true })
       const visibleKeypoints = pose?.keypoints.filter((keypoint) => (keypoint.score ?? 0) > 0.35) ?? []
       const personVisible = visibleKeypoints.length >= 5
       setPersonDetected(personVisible)
@@ -89,24 +88,24 @@ function App() {
         canvas.height = video.videoHeight || 480
         context.clearRect(0, 0, canvas.width, canvas.height)
         if (pose) {
-          const points = new Map(pose.keypoints.map((keypoint) => [keypoint.name, keypoint]))
+          const points = new Map(pose.keypoints.map((keypoint) => [keypoint.part, keypoint]))
           context.strokeStyle = '#d5f36f'
           context.lineWidth = 4
           SKELETON.forEach(([startName, endName]) => {
             const start = points.get(startName)
             const end = points.get(endName)
             if (start && end && (start.score ?? 0) > 0.35 && (end.score ?? 0) > 0.35) {
-              context.beginPath(); context.moveTo(start.x, start.y); context.lineTo(end.x, end.y); context.stroke()
+              context.beginPath(); context.moveTo(start.position.x, start.position.y); context.lineTo(end.position.x, end.position.y); context.stroke()
             }
           })
-          visibleKeypoints.forEach((keypoint) => { context.fillStyle = '#ff765f'; context.beginPath(); context.arc(keypoint.x, keypoint.y, 6, 0, Math.PI * 2); context.fill() })
+          visibleKeypoints.forEach((keypoint) => { context.fillStyle = '#ff765f'; context.beginPath(); context.arc(keypoint.position.x, keypoint.position.y, 6, 0, Math.PI * 2); context.fill() })
         }
       }
       if (personVisible && previousKeypointsRef.current) {
-        const previous = new Map(previousKeypointsRef.current.map((keypoint) => [keypoint.name, keypoint]))
+        const previous = new Map(previousKeypointsRef.current.map((keypoint) => [keypoint.part, keypoint]))
         const totalMovement = visibleKeypoints.reduce((sum, keypoint) => {
-          const old = previous.get(keypoint.name)
-          return old ? sum + Math.hypot(keypoint.x - old.x, keypoint.y - old.y) : sum
+          const old = previous.get(keypoint.part)
+          return old ? sum + Math.hypot(keypoint.position.x - old.position.x, keypoint.position.y - old.position.y) : sum
         }, 0)
         const averageMovement = totalMovement / Math.max(visibleKeypoints.length, 1)
         const intensity = Math.min(100, Math.round(averageMovement * 3.2))

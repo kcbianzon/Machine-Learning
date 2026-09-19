@@ -507,6 +507,40 @@ time {
     }
 }
 
+.pose-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+    pointer-events: none;
+}
+
+.movement-card {
+    padding-bottom: 25px;
+    border-bottom: 1px solid var(--line);
+}
+
+.movement-meta {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font: 11px 'DM Mono', monospace;
+}
+
+.movement-meta b {
+    color: var(--ink);
+    font-size: 15px;
+}
+
+.signal-on {
+    color: var(--lime);
+}
+
+.object-read {
+    padding-top: 25px;
+}
+
 @media (max-width: 760px) {
     .app-shell {
         padding: 0 20px;

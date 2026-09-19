@@ -516,6 +516,40 @@ time {
     pointer-events: none;
 }
 
+.camera-frame::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background: linear-gradient(rgba(213, 243, 111, .035) 1px, transparent 1px);
+    background-size: 100% 5px;
+    mix-blend-mode: screen;
+}
+
+.frame-hud {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    color: rgba(255, 255, 255, .7);
+    font: 9px/1.65 'DM Mono', monospace;
+    letter-spacing: 1px;
+    text-align: right;
+}
+
+.frame-hud b {
+    color: var(--lime);
+    font-weight: 400;
+}
+
+.frame-corner-target {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    color: rgba(255, 255, 255, .7);
+    font: 28px 'DM Mono', monospace;
+    transform: translate(-50%, -50%);
+}
+
 .movement-card {
     padding-bottom: 25px;
     border-bottom: 1px solid var(--line);
@@ -531,6 +565,27 @@ time {
 .movement-meta b {
     color: var(--ink);
     font-size: 15px;
+}
+
+.tracking-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 20px;
+}
+
+.tracking-chips span {
+    padding: 7px 8px;
+    border: 1px solid var(--line);
+    color: #66706a;
+    font: 10px 'DM Mono', monospace;
+    transition: border-color .2s, color .2s, box-shadow .2s;
+}
+
+.tracking-chips span.active {
+    border-color: #607448;
+    color: var(--lime);
+    box-shadow: 0 0 12px rgba(213, 243, 111, .08);
 }
 
 .signal-on {
